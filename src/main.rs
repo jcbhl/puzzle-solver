@@ -70,14 +70,23 @@ fn solve_level(mut board: &mut Board) {
             place_piece_at(&mut board, &p.center, &p.orientation)
         };
 
-        if board.cursor == last_in_level && board.state != State::Done {
+        if board.cursor.x == BOARD_SIZE - 1
+            && board.cursor.y == BOARD_SIZE - 1
+            && board.state != State::Done
+        {
+            println!("State transition from {:?}", board.state);
             match board.state {
                 State::PlacingFlat => board.state = State::PlacingFaceup,
-                State::PlacingFaceup => board.state = State::PlacingFacedown,
+                State::PlacingFaceup => {
+                    board.state = State::PlacingFacedown;
+                    board.cursor.z += 1;
+                }
                 State::PlacingFacedown => board.state = State::PlacingUpright,
                 State::PlacingUpright => board.state = State::Done,
                 State::Done => panic!(),
             }
+            board.cursor.x = 0;
+            board.cursor.y = 0;
         } else if board.state == State::Done {
             board.cursor = Point {
                 x: 0,
@@ -94,7 +103,7 @@ fn solve_level(mut board: &mut Board) {
         "Searched through all of board level {}, did not find any space.",
         board.cursor.z
     );
-    println!("{:?}", board.occupied);
+    // println!("{:?}", board.occupied);
 }
 
 fn inbounds_and_clear(board: &Board, point: &Point) -> bool {
@@ -111,7 +120,10 @@ fn all_points_clear(board: &Board, points: [Point; 4]) -> bool {
 }
 
 fn try_orientations(board: &Board, point: Point, state: State) -> Option<Position> {
-    println!("Checking orientations for center point {:?}", point);
+    println!(
+        "Checking orientations for center point {:?} and state {:?}",
+        point, state
+    );
     if !inbounds_and_clear(&board, &point) {
         return None;
     }
@@ -144,7 +156,7 @@ fn try_orientations(board: &Board, point: Point, state: State) -> Option<Positio
         let points = get_points_for_orientation(&point, orientation);
         if all_points_clear(&board, points) {
             println!(
-                "Found working piece position at {:?} with orientation {:?}",
+                "!!!!!!Found working piece position at {:?} with orientation {:?}",
                 point, orientation
             );
             return Some(Position {
@@ -167,6 +179,7 @@ fn place_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
         "Successfully placed piece at {:?} with orientation {:?}",
         point, orientation
     );
+    // println!("New board state is:\n{:?}", board.occupied);
 }
 
 fn get_points_for_orientation(point: &Point, orientation: Orientation) -> [Point; 4] {
@@ -256,7 +269,7 @@ fn get_points_for_orientation(point: &Point, orientation: Orientation) -> [Point
             points[3] = Point {
                 x: point.x,
                 y: point.y,
-                z: point.z - 1,
+                z: point.z.wrapping_sub(1),
             };
         }
         Orientation::FacedownVertical => {
@@ -273,7 +286,7 @@ fn get_points_for_orientation(point: &Point, orientation: Orientation) -> [Point
             points[3] = Point {
                 x: point.x,
                 y: point.y,
-                z: point.z + 1,
+                z: point.z.wrapping_sub(1),
             };
         }
         Orientation::FaceupHorizontal => {
