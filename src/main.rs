@@ -13,35 +13,11 @@ y
 
 */
 
-const BOARD_SIZE: usize = 6;
-use ndarray::Array3;
-
 mod defs;
 use crate::defs::*;
+mod helpers;
+use crate::helpers::*;
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum State {
-    PlacingFlat,
-    PlacingFaceup,
-    PlacingFacedown,
-    PlacingUpright,
-    Done,
-}
-struct Board {
-    occupied: Array3<bool>,
-    cursor: Point,
-    state: State,
-}
-
-impl Board {
-    fn new() -> Self {
-        Self {
-            occupied: Array3::default((BOARD_SIZE, BOARD_SIZE, BOARD_SIZE)),
-            cursor: Point { x: 0, y: 0, z: 0 },
-            state: State::PlacingFlat,
-        }
-    }
-}
 
 fn main() {
     let mut board = Board::new();
@@ -49,13 +25,7 @@ fn main() {
 }
 
 fn solve_level(mut board: &mut Board) {
-    let ending_point = Point {
-        x: BOARD_SIZE - 1,
-        y: BOARD_SIZE - 1,
-        z: BOARD_SIZE - 1,
-    };
-
-    while board.cursor != ending_point && board.state != State::PlacingUpright {
+    while board.cursor != END_OF_BOARD && board.state != State::Done {
         let last_in_level = Point {
             x: BOARD_SIZE - 1,
             y: BOARD_SIZE - 1,
@@ -63,11 +33,17 @@ fn solve_level(mut board: &mut Board) {
         };
 
         if let Some(p) = try_orientations(&board, board.cursor.clone(), board.state.clone()) {
-            println!(
-                "Placing piece at point {:?} with orientation {:?}",
-                p.center, p.orientation
-            );
-            place_piece_at(&mut board, &p.center, &p.orientation)
+            if helpers::need_check_overhang(&p.orientation)
+                && helpers::has_empty_overhang(&board, &p.center, &p.orientation)
+            {
+                println!("Bailing out, piece location has overhang.")
+            } else {
+                println!(
+                    "Placing piece at point {:?} with orientation {:?}",
+                    p.center, p.orientation
+                );
+                place_piece_at(&mut board, &p.center, &p.orientation)
+            }
         };
 
         if board.cursor.x == BOARD_SIZE - 1
@@ -104,13 +80,6 @@ fn solve_level(mut board: &mut Board) {
         board.cursor.z
     );
     // println!("{:?}", board.occupied);
-}
-
-fn inbounds_and_clear(board: &Board, point: &Point) -> bool {
-    return point.x <= BOARD_SIZE - 1
-        && point.y <= BOARD_SIZE - 1
-        && point.z <= BOARD_SIZE - 1
-        && !board.occupied[[point.x, point.y, point.z]];
 }
 
 fn all_points_clear(board: &Board, points: [Point; 4]) -> bool {
@@ -153,7 +122,7 @@ fn try_orientations(board: &Board, point: Point, state: State) -> Option<Positio
     }
 
     for orientation in orientations {
-        let points = get_points_for_orientation(&point, orientation);
+        let points = helpers::get_points_for_orientation(&point, orientation);
         if all_points_clear(&board, points) {
             println!(
                 "!!!!!!Found working piece position at {:?} with orientation {:?}",
@@ -180,219 +149,6 @@ fn place_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
         point, orientation
     );
     // println!("New board state is:\n{:?}", board.occupied);
-}
-
-fn get_points_for_orientation(point: &Point, orientation: Orientation) -> [Point; 4] {
-    let mut points: [Point; 4] = Default::default();
-    points[0] = point.clone();
-
-    match orientation {
-        Orientation::FlatUp => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-        }
-        Orientation::FlatLeft => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-        }
-        Orientation::FlatDown => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-        }
-        Orientation::FlatRight => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-        }
-        Orientation::FacedownHorizontal => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-        }
-        Orientation::FacedownVertical => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-        }
-        Orientation::FaceupHorizontal => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-        }
-        Orientation::FaceupVertical => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-        }
-        Orientation::UprightUp => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-        }
-        Orientation::UprightLeft => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-            points[3] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-        }
-        Orientation::UprightDown => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-        }
-        Orientation::UprightRight => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-            points[3] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-        }
-    }
-    return points;
 }
 
 fn increment_cursor_in_slice(cursor: &mut Point) {
