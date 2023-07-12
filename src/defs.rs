@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Point {
     pub x: usize,
     pub y: usize,
@@ -13,16 +13,16 @@ pub struct Position {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Orientation {
     // viewed from the top
-    FlatUp,              // ┴
-    FlatLeft,            // -|
-    FlatDown,            // T
-    FlatRight,           // -|
-    StickdownHorizontal, // ---
-    StickdownVertical,   // |
-    StickupHorizontal,   // ---
-    StickupVertical,     // |
-    UprightUp,           // |
-    UprightLeft,         // --
-    UprightDown,         // |
-    UprightRight,        // --
+    FlatUp,             // ┴
+    FlatLeft,           // -|
+    FlatDown,           // T
+    FlatRight,          // -|
+    FacedownHorizontal, // ---
+    FacedownVertical,   // |
+    FaceupHorizontal,   // ---
+    FaceupVertical,     // |
+    UprightUp,          // |
+    UprightLeft,        // --
+    UprightDown,        // |
+    UprightRight,       // --
 }
