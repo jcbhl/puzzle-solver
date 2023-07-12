@@ -15,8 +15,6 @@ y
 
 mod defs;
 use std::io;
-use std::io::Read;
-use std::process::exit;
 
 use crate::defs::*;
 mod helpers;
@@ -47,7 +45,7 @@ fn solve(mut board: &mut Board) {
 
     loop {
         let mut stack_state = stack.last_mut().unwrap();
-        println!("Current stack state is:\n {:?}\n\n", stack_state);
+        println!("Current stack state is:\n {:?}", stack_state);
 
         let mut should_pop = false;
 
@@ -59,6 +57,7 @@ fn solve(mut board: &mut Board) {
                 .for_each(|elem| println!("Place {:?} in orientation {:?}", elem.last_move.center, elem.last_move.orientation));
             return;
         } else if stack_state.cursor.x > BOARD_SIZE - 1 || stack_state.cursor.y > BOARD_SIZE - 1 {
+            println!("Cursor is out of board range, checking...");
             // Bail out if we're PlacingUpright and the slice is not full.
             if stack_state.placement_state == PlacementState::PlacingUpright {
                 'outer: for x in 0..BOARD_SIZE {
@@ -71,18 +70,17 @@ fn solve(mut board: &mut Board) {
                         }
                     }
                 }
-            } else {
-                let next_placement_state = placement_state_transition(stack_state.placement_state);
-                println!("State change from {:?} to {:?}", stack_state.placement_state, next_placement_state);
-
-                stack_state.cursor.x = 0;
-                stack_state.cursor.y = 0;
-                if next_placement_state == PlacementState::PlacingFacedown {
-                    stack_state.cursor.z += 1;
-                }
-
-                stack_state.placement_state = next_placement_state
             }
+            let next_placement_state = placement_state_transition(stack_state.placement_state);
+            println!("State change from {:?} to {:?}", stack_state.placement_state, next_placement_state);
+
+            stack_state.cursor.x = 0;
+            stack_state.cursor.y = 0;
+            if next_placement_state == PlacementState::PlacingFacedown {
+                stack_state.cursor.z += 1;
+            }
+
+            stack_state.placement_state = next_placement_state
         } else if let Some(found_position) = try_orientations(&board, &stack_state.cursor, &stack_state.placement_state) {
             if helpers::need_check_overhang(&found_position.orientation)
                 && helpers::has_empty_overhang(&board, &found_position.center, &found_position.orientation)
@@ -95,31 +93,30 @@ fn solve(mut board: &mut Board) {
                     found_position.center, found_position.orientation
                 );
                 place_piece_at(&mut board, &found_position.center, &found_position.orientation);
-                let mut updated_cursor = found_position.center.clone();
-                increment_cursor_in_slice(&mut updated_cursor);
-                println!("eeeeeeeeee updated cursor to {:?}", updated_cursor);
+                increment_cursor_in_slice(&mut stack_state.cursor);
                 let new_stack_state = StackState {
                     placement_state: stack_state.placement_state.clone(),
                     last_move: Position {
                         center: found_position.center.clone(),
                         orientation: found_position.orientation.clone(),
                     },
-                    cursor: updated_cursor.clone(),
+                    cursor: stack_state.cursor.clone(),
                     pieces_remaining: stack_state.pieces_remaining - 1,
                 };
                 stack.push(new_stack_state);
             }
         } else {
+            println!("No moves found, incrementing.");
             increment_cursor_in_slice(&mut stack_state.cursor);
         }
 
         if should_pop {
             stack.pop();
-            increment_cursor_in_slice(&mut stack.last_mut().unwrap().cursor);
+            // increment_cursor_in_slice(&mut stack.last_mut().unwrap().cursor);
         }
 
-        let mut buf = String::new();
-        let _ = io::stdin().read_line(&mut buf);
+        // let mut buf = String::new();
+        // let _ = io::stdin().read_line(&mut buf);
     }
 }
 
