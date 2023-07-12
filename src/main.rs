@@ -58,6 +58,31 @@ fn solve(mut board: &mut Board) {
                 .rev()
                 .for_each(|elem| println!("Place {:?} in orientation {:?}", elem.last_move.center, elem.last_move.orientation));
             return;
+        } else if stack_state.cursor.x > BOARD_SIZE - 1 || stack_state.cursor.y > BOARD_SIZE - 1 {
+            // Bail out if we're PlacingUpright and the slice is not full.
+            if stack_state.placement_state == PlacementState::PlacingUpright {
+                'outer: for x in 0..BOARD_SIZE {
+                    for y in 0..BOARD_SIZE {
+                        if !board.occupied[[x, y, stack_state.cursor.z - 1]] {
+                            println!("Found unfilled box at {:?}. Unwinding", [x, y, stack_state.cursor.z - 1]);
+                            remove_piece_at(&mut board, &stack_state.last_move.center, &stack_state.last_move.orientation);
+                            should_pop = true;
+                            break 'outer;
+                        }
+                    }
+                }
+            } else {
+                let next_placement_state = placement_state_transition(stack_state.placement_state);
+                println!("State change from {:?} to {:?}", stack_state.placement_state, next_placement_state);
+
+                stack_state.cursor.x = 0;
+                stack_state.cursor.y = 0;
+                if next_placement_state == PlacementState::PlacingFacedown {
+                    stack_state.cursor.z += 1;
+                }
+
+                stack_state.placement_state = next_placement_state
+            }
         } else if let Some(found_position) = try_orientations(&board, &stack_state.cursor, &stack_state.placement_state) {
             if helpers::need_check_overhang(&found_position.orientation)
                 && helpers::has_empty_overhang(&board, &found_position.center, &found_position.orientation)
@@ -83,30 +108,6 @@ fn solve(mut board: &mut Board) {
                     pieces_remaining: stack_state.pieces_remaining - 1,
                 };
                 stack.push(new_stack_state);
-            }
-        } else if stack_state.cursor.x == BOARD_SIZE - 1 && stack_state.cursor.y == BOARD_SIZE - 1 {
-            // Bail out if we're PlacingUpright and the slice is not full.
-            if stack_state.placement_state == PlacementState::PlacingUpright {
-                for x in 0..BOARD_SIZE {
-                    for y in 0..BOARD_SIZE {
-                        if !board.occupied[[x, y, stack_state.cursor.z - 1]] {
-                            println!("Found unfilled box at {:?}. Unwinding", [x, y, stack_state.cursor.z - 1]);
-                            remove_piece_at(&mut board, &stack_state.last_move.center, &stack_state.last_move.orientation);
-                            should_pop = true;
-                        }
-                    }
-                }
-            } else {
-                let next_placement_state = placement_state_transition(stack_state.placement_state);
-                println!("State change from {:?} to {:?}", stack_state.placement_state, next_placement_state);
-
-                stack_state.cursor.x = 0;
-                stack_state.cursor.y = 0;
-                if next_placement_state == PlacementState::PlacingFacedown {
-                    stack_state.cursor.z += 1;
-                }
-
-                stack_state.placement_state = next_placement_state
             }
         } else {
             increment_cursor_in_slice(&mut stack_state.cursor);
