@@ -43,7 +43,6 @@ pub enum PlacementState {
     PlacingFaceup,
     PlacingFacedown,
     PlacingUpright,
-    Done,
 }
 pub struct Board {
     pub occupied: Array3<bool>,

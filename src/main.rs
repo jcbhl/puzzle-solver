@@ -14,6 +14,10 @@ y
 */
 
 mod defs;
+use std::io;
+use std::io::Read;
+use std::process::exit;
+
 use crate::defs::*;
 mod helpers;
 use crate::helpers::*;
@@ -43,6 +47,9 @@ fn solve(mut board: &mut Board) {
 
     loop {
         let mut stack_state = stack.last_mut().unwrap();
+        println!("Current stack state is:\n {:?}\n\n", stack_state);
+
+        let mut should_pop = false;
 
         if stack_state.pieces_remaining == 0 {
             println!("---------------------Zero pieces remaining on the stack, solution found. Unwinding...");
@@ -52,38 +59,66 @@ fn solve(mut board: &mut Board) {
                 .for_each(|elem| println!("Place {:?} in orientation {:?}", elem.last_move.center, elem.last_move.orientation));
             return;
         } else if let Some(found_position) = try_orientations(&board, &stack_state.cursor, &stack_state.placement_state) {
-            if !helpers::need_check_overhang(&found_position.orientation)
-                || !helpers::has_empty_overhang(&board, &found_position.center, &found_position.orientation)
+            if helpers::need_check_overhang(&found_position.orientation)
+                && helpers::has_empty_overhang(&board, &found_position.center, &found_position.orientation)
             {
+                increment_cursor_in_slice(&mut stack_state.cursor);
+                println!("Bailing out, position has overhang.");
+            } else {
                 println!(
                     "Placing piece at point {:?} with orientation {:?}",
                     found_position.center, found_position.orientation
                 );
                 place_piece_at(&mut board, &found_position.center, &found_position.orientation);
+                let mut updated_cursor = found_position.center.clone();
+                increment_cursor_in_slice(&mut updated_cursor);
+                println!("eeeeeeeeee updated cursor to {:?}", updated_cursor);
                 let new_stack_state = StackState {
                     placement_state: stack_state.placement_state.clone(),
                     last_move: Position {
                         center: found_position.center.clone(),
                         orientation: found_position.orientation.clone(),
                     },
-                    cursor: stack_state.cursor.clone(),
+                    cursor: updated_cursor.clone(),
                     pieces_remaining: stack_state.pieces_remaining - 1,
                 };
                 stack.push(new_stack_state);
             }
         } else if stack_state.cursor.x == BOARD_SIZE - 1 && stack_state.cursor.y == BOARD_SIZE - 1 {
-            let next_placement_state = placement_state_transition(stack_state.placement_state);
+            // Bail out if we're PlacingUpright and the slice is not full.
+            if stack_state.placement_state == PlacementState::PlacingUpright {
+                for x in 0..BOARD_SIZE {
+                    for y in 0..BOARD_SIZE {
+                        if !board.occupied[[x, y, stack_state.cursor.z - 1]] {
+                            println!("Found unfilled box at {:?}. Unwinding", [x, y, stack_state.cursor.z - 1]);
+                            remove_piece_at(&mut board, &stack_state.last_move.center, &stack_state.last_move.orientation);
+                            should_pop = true;
+                        }
+                    }
+                }
+            } else {
+                let next_placement_state = placement_state_transition(stack_state.placement_state);
+                println!("State change from {:?} to {:?}", stack_state.placement_state, next_placement_state);
 
-            if next_placement_state == PlacementState::PlacingFacedown {
-                stack_state.cursor.z += 1;
                 stack_state.cursor.x = 0;
                 stack_state.cursor.y = 0;
-            }
+                if next_placement_state == PlacementState::PlacingFacedown {
+                    stack_state.cursor.z += 1;
+                }
 
-            stack_state.placement_state = next_placement_state
+                stack_state.placement_state = next_placement_state
+            }
         } else {
-            increment_cursor_in_slice(&mut stack_state.cursor)
+            increment_cursor_in_slice(&mut stack_state.cursor);
         }
+
+        if should_pop {
+            stack.pop();
+            increment_cursor_in_slice(&mut stack.last_mut().unwrap().cursor);
+        }
+
+        let mut buf = String::new();
+        let _ = io::stdin().read_line(&mut buf);
     }
 }
 
@@ -92,8 +127,7 @@ fn placement_state_transition(state: PlacementState) -> PlacementState {
         PlacementState::PlacingFlat => PlacementState::PlacingFaceup,
         PlacementState::PlacingFaceup => PlacementState::PlacingFacedown,
         PlacementState::PlacingFacedown => PlacementState::PlacingUpright,
-        PlacementState::PlacingUpright => PlacementState::Done,
-        PlacementState::Done => panic!(),
+        PlacementState::PlacingUpright => PlacementState::PlacingFlat,
     };
 }
 
@@ -157,7 +191,6 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
             orientations.push(Orientation::UprightDown);
             orientations.push(Orientation::UprightRight);
         }
-        PlacementState::Done => panic!(),
     }
 
     for orientation in orientations {
@@ -181,6 +214,15 @@ fn place_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
         board.occupied[[target_point.x, target_point.y, target_point.z]] = true;
     }
     println!("Successfully placed piece at {:?} with orientation {:?}", point, orientation);
+}
+
+fn remove_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
+    let points = get_points_for_orientation(point, orientation.clone());
+    for target_point in points {
+        assert!(board.occupied[[target_point.x, target_point.y, target_point.z]]);
+        board.occupied[[target_point.x, target_point.y, target_point.z]] = false;
+    }
+    println!("Successfully removed piece at {:?} with orientation {:?}", point, orientation);
     // println!("New board state is:\n{:?}", board.occupied);
 }
 
