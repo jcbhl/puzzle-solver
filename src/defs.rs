@@ -1,6 +1,7 @@
 use ndarray::Array3;
 
 pub const BOARD_SIZE: usize = 6;
+pub const PIECE_COUNT: usize = 54;
 pub const END_OF_BOARD: Point = Point {
     x: BOARD_SIZE - 1,
     y: BOARD_SIZE - 1,
@@ -37,7 +38,7 @@ pub enum Orientation {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum State {
+pub enum PlacementState {
     PlacingFlat,
     PlacingFaceup,
     PlacingFacedown,
@@ -47,7 +48,7 @@ pub enum State {
 pub struct Board {
     pub occupied: Array3<bool>,
     pub cursor: Point,
-    pub state: State,
+    pub state: PlacementState,
 }
 
 impl Board {
@@ -55,7 +56,15 @@ impl Board {
         Self {
             occupied: Array3::default((BOARD_SIZE, BOARD_SIZE, BOARD_SIZE)),
             cursor: Point { x: 0, y: 0, z: 0 },
-            state: State::PlacingFlat,
+            state: PlacementState::PlacingFlat,
         }
     }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct StackState {
+    pub placement_state: PlacementState,
+    pub last_move: Position,
+    pub cursor: Point,
+    pub pieces_remaining: usize,
 }
