@@ -41,9 +41,6 @@ impl Board {
             state: State::PlacingFlat,
         }
     }
-    fn at(&self, point: Point) -> bool {
-        return self.occupied[[point.x, point.y, point.z]];
-    }
 }
 
 fn main() {
@@ -59,6 +56,12 @@ fn solve_level(mut board: &mut Board) {
     };
 
     while board.cursor != ending_point && board.state != State::PlacingUpright {
+        let last_in_level = Point {
+            x: BOARD_SIZE - 1,
+            y: BOARD_SIZE - 1,
+            z: board.cursor.z,
+        };
+
         if let Some(p) = try_orientations(&board, board.cursor.clone(), board.state.clone()) {
             println!(
                 "Placing piece at point {:?} with orientation {:?}",
@@ -66,8 +69,8 @@ fn solve_level(mut board: &mut Board) {
             );
             place_piece_at(&mut board, &p.center, &p.orientation)
         };
-        increment_cursor_in_slice(&mut board.cursor);
-        if board.cursor == ending_point && board.state != State::PlacingUpright {
+
+        if board.cursor == last_in_level && board.state != State::Done {
             match board.state {
                 State::PlacingFlat => board.state = State::PlacingFaceup,
                 State::PlacingFaceup => board.state = State::PlacingFacedown,
@@ -75,15 +78,15 @@ fn solve_level(mut board: &mut Board) {
                 State::PlacingUpright => board.state = State::Done,
                 State::Done => panic!(),
             }
-        }
-        // Go up a level if we've tried all strategies on this level
-        if board.state == State::Done {
+        } else if board.state == State::Done {
             board.cursor = Point {
                 x: 0,
                 y: 0,
                 z: board.cursor.z + 1,
             };
             board.state = State::PlacingFlat
+        } else {
+            increment_cursor_in_slice(&mut board.cursor);
         }
     }
 
