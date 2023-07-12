@@ -14,7 +14,6 @@ y
 */
 
 mod defs;
-use std::io;
 
 use crate::defs::*;
 mod helpers;
@@ -94,12 +93,12 @@ fn solve(mut board: &mut Board) {
                 place_piece_at(&mut board, &found_position.center, &found_position.orientation);
                 increment_cursor_in_slice(&mut stack_state.cursor);
                 let new_stack_state = StackState {
-                    placement_state: stack_state.placement_state.clone(),
+                    placement_state: stack_state.placement_state,
                     last_move: Position {
-                        center: found_position.center.clone(),
-                        orientation: found_position.orientation.clone(),
+                        center: found_position.center,
+                        orientation: found_position.orientation,
                     },
-                    cursor: stack_state.cursor.clone(),
+                    cursor: stack_state.cursor,
                     pieces_remaining: stack_state.pieces_remaining - 1,
                 };
                 stack.push(new_stack_state);
@@ -191,12 +190,12 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
     }
 
     for orientation in orientations {
-        let points = helpers::get_points_for_orientation(&point, orientation);
+        let points = helpers::get_points_for_orientation(&point, &orientation);
         if all_points_clear(&board, points) {
             // println!("!!!!!!Found working piece position at {:?} with orientation {:?}", point, orientation);
             return Some(Position {
-                center: point.clone(),
-                orientation: orientation.clone(),
+                center: *point,
+                orientation: orientation,
             });
         }
     }
@@ -205,7 +204,7 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
 }
 
 fn place_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
-    let points = get_points_for_orientation(point, orientation.clone());
+    let points = get_points_for_orientation(point, orientation);
     for target_point in points {
         assert!(!board.occupied[[target_point.x, target_point.y, target_point.z]]);
         board.occupied[[target_point.x, target_point.y, target_point.z]] = true;
@@ -214,7 +213,7 @@ fn place_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
 }
 
 fn remove_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
-    let points = get_points_for_orientation(point, orientation.clone());
+    let points = get_points_for_orientation(point, orientation);
     for target_point in points {
         assert!(board.occupied[[target_point.x, target_point.y, target_point.z]]);
         board.occupied[[target_point.x, target_point.y, target_point.z]] = false;

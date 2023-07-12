@@ -76,10 +76,7 @@ pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientatio
 pub fn need_check_overhang(orientation: &Orientation) -> bool {
     match orientation {
         Orientation::FacedownHorizontal | Orientation::FacedownVertical => true,
-        Orientation::UprightUp
-        | Orientation::UprightLeft
-        | Orientation::UprightDown
-        | Orientation::UprightRight => true,
+        Orientation::UprightUp | Orientation::UprightLeft | Orientation::UprightDown | Orientation::UprightRight => true,
         _ => false,
     }
 }
@@ -98,9 +95,9 @@ pub fn inbounds_and_occupied(board: &Board, point: &Point) -> bool {
         && board.occupied[[point.x, point.y, point.z]];
 }
 
-pub fn get_points_for_orientation(point: &Point, orientation: Orientation) -> [Point; 4] {
+pub fn get_points_for_orientation(point: &Point, orientation: &Orientation) -> [Point; 4] {
     let mut points: [Point; 4] = Default::default();
-    points[0] = point.clone();
+    points[0] = *point;
 
     match orientation {
         Orientation::FlatUp => {

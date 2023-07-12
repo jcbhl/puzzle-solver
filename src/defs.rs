@@ -2,11 +2,6 @@ use ndarray::Array3;
 
 pub const BOARD_SIZE: usize = 6;
 pub const PIECE_COUNT: usize = 54;
-pub const END_OF_BOARD: Point = Point {
-    x: BOARD_SIZE - 1,
-    y: BOARD_SIZE - 1,
-    z: BOARD_SIZE - 1,
-};
 
 #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Point {
