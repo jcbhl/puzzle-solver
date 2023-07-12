@@ -5,14 +5,14 @@ pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientatio
     match orientation {
         Orientation::FacedownHorizontal => {
             inbounds_and_clear(
-                &board,
+                board,
                 &Point {
                     x: point.x.wrapping_sub(1),
                     y: point.y,
                     z: point.z.wrapping_sub(1),
                 },
             ) || inbounds_and_clear(
-                &board,
+                board,
                 &Point {
                     x: point.x + 1,
                     y: point.y,
@@ -22,14 +22,14 @@ pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientatio
         }
         Orientation::FacedownVertical => {
             inbounds_and_clear(
-                &board,
+                board,
                 &Point {
                     x: point.x,
                     y: point.y.wrapping_sub(1),
                     z: point.z.wrapping_sub(1),
                 },
             ) || inbounds_and_clear(
-                &board,
+                board,
                 &Point {
                     x: point.x,
                     y: point.y + 1,
@@ -38,7 +38,7 @@ pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientatio
             )
         }
         Orientation::UprightUp => inbounds_and_clear(
-            &board,
+            board,
             &Point {
                 x: point.x,
                 y: point.y.wrapping_sub(1),
@@ -46,7 +46,7 @@ pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientatio
             },
         ),
         Orientation::UprightLeft => inbounds_and_clear(
-            &board,
+            board,
             &Point {
                 x: point.x.wrapping_sub(1),
                 y: point.y,
@@ -54,7 +54,7 @@ pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientatio
             },
         ),
         Orientation::UprightDown => inbounds_and_clear(
-            &board,
+            board,
             &Point {
                 x: point.x,
                 y: point.y + 1,
@@ -62,7 +62,7 @@ pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientatio
             },
         ),
         Orientation::UprightRight => inbounds_and_clear(
-            &board,
+            board,
             &Point {
                 x: point.x + 1,
                 y: point.y,
@@ -74,25 +74,19 @@ pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientatio
 }
 
 pub fn need_check_overhang(orientation: &Orientation) -> bool {
-    match orientation {
-        Orientation::FacedownHorizontal | Orientation::FacedownVertical => true,
-        Orientation::UprightUp | Orientation::UprightLeft | Orientation::UprightDown | Orientation::UprightRight => true,
-        _ => false,
-    }
+    matches!(
+        orientation,
+        Orientation::FacedownHorizontal
+            | Orientation::FacedownVertical
+            | Orientation::UprightUp
+            | Orientation::UprightLeft
+            | Orientation::UprightDown
+            | Orientation::UprightRight
+    )
 }
 
 pub fn inbounds_and_clear(board: &Board, point: &Point) -> bool {
-    return point.x <= BOARD_SIZE - 1
-        && point.y <= BOARD_SIZE - 1
-        && point.z <= BOARD_SIZE - 1
-        && !board.occupied[[point.x, point.y, point.z]];
-}
-
-pub fn inbounds_and_occupied(board: &Board, point: &Point) -> bool {
-    return point.x <= BOARD_SIZE - 1
-        && point.y <= BOARD_SIZE - 1
-        && point.z <= BOARD_SIZE - 1
-        && board.occupied[[point.x, point.y, point.z]];
+    point.x < BOARD_SIZE && point.y < BOARD_SIZE && point.z < BOARD_SIZE && !board.occupied[[point.x, point.y, point.z]]
 }
 
 pub fn get_points_for_orientation(point: &Point, orientation: &Orientation) -> [Point; 4] {
@@ -305,5 +299,5 @@ pub fn get_points_for_orientation(point: &Point, orientation: &Orientation) -> [
             };
         }
     }
-    return points;
+    points
 }

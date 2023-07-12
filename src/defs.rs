@@ -33,6 +33,7 @@ pub enum Orientation {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum PlacementState {
     PlacingFlat,
     PlacingFaceup,

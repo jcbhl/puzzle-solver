@@ -25,7 +25,7 @@ fn main() {
     solve(&mut board);
 }
 
-fn solve(mut board: &mut Board) {
+fn solve(board: &mut Board) {
     // Keep track of the state with a stack so that we get DFS.
     // At each step, find the next move given the current PlacementState and the cursor position, then update the board and add the move to the stack.
     // If we don't have any actions, then pop the top of the stack, undo the move, and continue searching from that cursor position and state.
@@ -62,7 +62,7 @@ fn solve(mut board: &mut Board) {
                     for y in 0..BOARD_SIZE {
                         if !board.occupied[[x, y, stack_state.cursor.z - 1]] {
                             // println!("Found unfilled box at {:?}. Unwinding", [x, y, stack_state.cursor.z - 1]);
-                            remove_piece_at(&mut board, &stack_state.last_move.center, &stack_state.last_move.orientation);
+                            remove_piece_at(board, &stack_state.last_move.center, &stack_state.last_move.orientation);
                             should_pop = true;
                             break 'outer;
                         }
@@ -79,9 +79,9 @@ fn solve(mut board: &mut Board) {
             }
 
             stack_state.placement_state = next_placement_state
-        } else if let Some(found_position) = try_orientations(&board, &stack_state.cursor, &stack_state.placement_state) {
+        } else if let Some(found_position) = try_orientations(board, &stack_state.cursor, &stack_state.placement_state) {
             if helpers::need_check_overhang(&found_position.orientation)
-                && helpers::has_empty_overhang(&board, &found_position.center, &found_position.orientation)
+                && helpers::has_empty_overhang(board, &found_position.center, &found_position.orientation)
             {
                 increment_cursor_in_slice(&mut stack_state.cursor);
                 // println!("Bailing out, position has overhang.");
@@ -90,7 +90,7 @@ fn solve(mut board: &mut Board) {
                 //     "Placing piece at point {:?} with orientation {:?}",
                 //     found_position.center, found_position.orientation
                 // );
-                place_piece_at(&mut board, &found_position.center, &found_position.orientation);
+                place_piece_at(board, &found_position.center, &found_position.orientation);
                 increment_cursor_in_slice(&mut stack_state.cursor);
                 let new_stack_state = StackState {
                     placement_state: stack_state.placement_state,
@@ -119,12 +119,12 @@ fn solve(mut board: &mut Board) {
 }
 
 fn placement_state_transition(state: PlacementState) -> PlacementState {
-    return match state {
+    match state {
         PlacementState::PlacingFlat => PlacementState::PlacingFaceup,
         PlacementState::PlacingFaceup => PlacementState::PlacingFacedown,
         PlacementState::PlacingFacedown => PlacementState::PlacingUpright,
         PlacementState::PlacingUpright => PlacementState::PlacingFlat,
-    };
+    }
 }
 
 // fn solve_level(mut board: &mut Board) {
@@ -157,12 +157,12 @@ fn placement_state_transition(state: PlacementState) -> PlacementState {
 // }
 
 fn all_points_clear(board: &Board, points: [Point; 4]) -> bool {
-    return points.iter().all(|&point| inbounds_and_clear(&board, &point));
+    return points.iter().all(|&point| inbounds_and_clear(board, &point));
 }
 
 fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Option<Position> {
     // println!("Checking orientations for center point {:?} and state {:?}", point, state);
-    if !inbounds_and_clear(&board, &point) {
+    if !inbounds_and_clear(board, point) {
         return None;
     }
     let mut orientations: Vec<Orientation> = Default::default();
@@ -190,12 +190,12 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
     }
 
     for orientation in orientations {
-        let points = helpers::get_points_for_orientation(&point, &orientation);
-        if all_points_clear(&board, points) {
+        let points = helpers::get_points_for_orientation(point, &orientation);
+        if all_points_clear(board, points) {
             // println!("!!!!!!Found working piece position at {:?} with orientation {:?}", point, orientation);
             return Some(Position {
                 center: *point,
-                orientation: orientation,
+                orientation,
             });
         }
     }
