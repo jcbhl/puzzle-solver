@@ -24,14 +24,10 @@ fn main() {
     solve_level(&mut board);
 }
 
+fn solve(mut board: &mut Board) {}
+
 fn solve_level(mut board: &mut Board) {
     while board.cursor != END_OF_BOARD && board.state != State::Done {
-        let last_in_level = Point {
-            x: BOARD_SIZE - 1,
-            y: BOARD_SIZE - 1,
-            z: board.cursor.z,
-        };
-
         if let Some(p) = try_orientations(&board, board.cursor.clone(), board.state.clone()) {
             if helpers::need_check_overhang(&p.orientation)
                 && helpers::has_empty_overhang(&board, &p.center, &p.orientation)
@@ -64,11 +60,9 @@ fn solve_level(mut board: &mut Board) {
             board.cursor.x = 0;
             board.cursor.y = 0;
         } else if board.state == State::Done {
-            board.cursor = Point {
-                x: 0,
-                y: 0,
-                z: board.cursor.z + 1,
-            };
+            // We've already upped the Z level from the state transition.
+            board.cursor.x = 0;
+            board.cursor.y = 0;
             board.state = State::PlacingFlat
         } else {
             increment_cursor_in_slice(&mut board.cursor);
