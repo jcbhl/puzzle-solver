@@ -30,7 +30,6 @@ pub enum Orientation {
     UprightLeft,        // --
     UprightDown,        // |
     UprightRight,       // --
-    Invalid,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

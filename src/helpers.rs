@@ -298,7 +298,6 @@ pub fn get_points_for_orientation(point: &Point, orientation: &Orientation) -> [
                 z: point.z,
             };
         }
-        _ => panic!(),
     }
     points
 }

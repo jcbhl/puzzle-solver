@@ -165,55 +165,47 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
     if !inbounds_and_clear(board, point) {
         return None;
     }
-    let orientation_count: usize;
-    let orientations: [Orientation; 4];
+    let orientations: [Option<Orientation>; 4];
     match state {
         PlacementState::PlacingFlat => {
             orientations = [
-                Orientation::FlatUp,
-                Orientation::FlatLeft,
-                Orientation::FlatDown,
-                Orientation::FlatRight,
+                Some(Orientation::FlatUp),
+                Some(Orientation::FlatLeft),
+                Some(Orientation::FlatDown),
+                Some(Orientation::FlatRight),
             ];
-            orientation_count = 4;
         }
         PlacementState::PlacingFaceup => {
-            orientations = [
-                Orientation::FaceupHorizontal,
-                Orientation::FaceupVertical,
-                Orientation::Invalid,
-                Orientation::Invalid,
-            ];
-            orientation_count = 2;
+            orientations = [Some(Orientation::FaceupHorizontal), Some(Orientation::FaceupVertical), None, None];
         }
         PlacementState::PlacingFacedown => {
             orientations = [
-                Orientation::FacedownHorizontal,
-                Orientation::FacedownVertical,
-                Orientation::Invalid,
-                Orientation::Invalid,
+                Some(Orientation::FacedownHorizontal),
+                Some(Orientation::FacedownVertical),
+                None,
+                None,
             ];
-            orientation_count = 2;
         }
         PlacementState::PlacingUpright => {
             orientations = [
-                Orientation::UprightUp,
-                Orientation::UprightLeft,
-                Orientation::UprightDown,
-                Orientation::UprightRight,
+                Some(Orientation::UprightUp),
+                Some(Orientation::UprightLeft),
+                Some(Orientation::UprightDown),
+                Some(Orientation::UprightRight),
             ];
-            orientation_count = 4;
         }
     }
 
-    for i in 0..orientation_count {
-        let orientation = orientations[i];
-        let points = helpers::get_points_for_orientation(point, &orientation);
+    for orientation in orientations {
+        if orientation.is_none() {
+            continue;
+        }
+        let points = helpers::get_points_for_orientation(point, &orientation.unwrap());
         if all_points_clear(board, points) {
             // println!("!!!!!!Found working piece position at {:?} with orientation {:?}", point, orientation);
             return Some(Position {
                 center: *point,
-                orientation,
+                orientation: orientation.unwrap(),
             });
         }
     }
