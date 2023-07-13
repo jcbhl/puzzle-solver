@@ -89,218 +89,74 @@ pub fn inbounds_and_clear(board: &Board, point: &Point) -> bool {
     // SAFETY: The board is guaranteed to have dimensions of [BOARD_SIZE, BOARD_SIZE, BOARD_SIZE].
     // The Point components are usizes, so they are constrained to positive numbers.
     // Since we do a bounds check up front, there is no need for ndarray to perform its own bounds checking again.
-    // This was shown to be a hot spot in proifling.
+    // This was shown to be a hot spot in profiling.
     point.x < BOARD_SIZE && point.y < BOARD_SIZE && point.z < BOARD_SIZE && unsafe { !board.occupied.uget([point.x, point.y, point.z]) }
 }
 
 pub fn get_points_for_orientation(point: &Point, orientation: &Orientation) -> [Point; 4] {
-    let mut points: [Point; 4] = Default::default();
-    points[0] = *point;
+    let mut points: [Point; 4] = [point.clone(); 4];
 
+    // These orientations are all expressed as offsets from the center point of the piece.
     match orientation {
         Orientation::FlatUp => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
+            points[1].x = point.x.wrapping_sub(1);
+            points[2].x = point.x + 1;
+            points[3].y = point.y.wrapping_sub(1);
         }
         Orientation::FlatLeft => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
+            points[1].x = point.x.wrapping_sub(1);
+            points[2].y = point.y.wrapping_sub(1);
+            points[3].y = point.y + 1;
         }
         Orientation::FlatDown => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
+            points[1].x = point.x.wrapping_sub(1);
+            points[2].x = point.x + 1;
+            points[3].y = point.y + 1;
         }
         Orientation::FlatRight => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
+            points[1].y = point.y.wrapping_sub(1);
+            points[2].y = point.y + 1;
+            points[3].x = point.x + 1;
         }
         Orientation::FacedownHorizontal => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
+            points[1].x = point.x.wrapping_sub(1);
+            points[2].x = point.x + 1;
+            points[3].z = point.z.wrapping_sub(1);
         }
         Orientation::FacedownVertical => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
+            points[1].y = point.y.wrapping_sub(1);
+            points[2].y = point.y + 1;
+            points[3].z = point.z.wrapping_sub(1);
         }
         Orientation::FaceupHorizontal => {
-            points[1] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
+            points[1].x = point.x.wrapping_sub(1);
+            points[2].x = point.x + 1;
+            points[3].z = point.z + 1;
         }
         Orientation::FaceupVertical => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
+            points[1].y = point.y.wrapping_sub(1);
+            points[2].y = point.y + 1;
+            points[3].z = point.z + 1;
         }
         Orientation::UprightUp => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y.wrapping_sub(1),
-                z: point.z,
-            };
+            points[1].z = point.z + 1;
+            points[2].z = point.z.wrapping_sub(1);
+            points[3].y = point.y.wrapping_sub(1);
         }
         Orientation::UprightLeft => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-            points[3] = Point {
-                x: point.x.wrapping_sub(1),
-                y: point.y,
-                z: point.z,
-            };
+            points[1].z = point.z + 1;
+            points[2].z = point.z.wrapping_sub(1);
+            points[3].x = point.x.wrapping_sub(1);
         }
         Orientation::UprightDown => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-            points[3] = Point {
-                x: point.x,
-                y: point.y + 1,
-                z: point.z,
-            };
+            points[1].z = point.z + 1;
+            points[2].z = point.z.wrapping_sub(1);
+            points[3].y = point.y + 1;
         }
         Orientation::UprightRight => {
-            points[1] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z + 1,
-            };
-            points[2] = Point {
-                x: point.x,
-                y: point.y,
-                z: point.z.wrapping_sub(1),
-            };
-            points[3] = Point {
-                x: point.x + 1,
-                y: point.y,
-                z: point.z,
-            };
+            points[1].z = point.z + 1;
+            points[2].z = point.z.wrapping_sub(1);
+            points[3].x = point.x + 1;
         }
     }
     points
