@@ -165,31 +165,49 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
     if !inbounds_and_clear(board, point) {
         return None;
     }
-    let mut orientations: Vec<Orientation> = Default::default();
+    let orientation_count: usize;
+    let orientations: [Orientation; 4];
     match state {
         PlacementState::PlacingFlat => {
-            orientations.push(Orientation::FlatUp);
-            orientations.push(Orientation::FlatLeft);
-            orientations.push(Orientation::FlatDown);
-            orientations.push(Orientation::FlatRight);
+            orientations = [
+                Orientation::FlatUp,
+                Orientation::FlatLeft,
+                Orientation::FlatDown,
+                Orientation::FlatRight,
+            ];
+            orientation_count = 4;
         }
         PlacementState::PlacingFaceup => {
-            orientations.push(Orientation::FaceupHorizontal);
-            orientations.push(Orientation::FaceupVertical);
+            orientations = [
+                Orientation::FaceupHorizontal,
+                Orientation::FaceupVertical,
+                Orientation::Invalid,
+                Orientation::Invalid,
+            ];
+            orientation_count = 2;
         }
         PlacementState::PlacingFacedown => {
-            orientations.push(Orientation::FacedownHorizontal);
-            orientations.push(Orientation::FacedownVertical);
+            orientations = [
+                Orientation::FacedownHorizontal,
+                Orientation::FacedownVertical,
+                Orientation::Invalid,
+                Orientation::Invalid,
+            ];
+            orientation_count = 2;
         }
         PlacementState::PlacingUpright => {
-            orientations.push(Orientation::UprightUp);
-            orientations.push(Orientation::UprightLeft);
-            orientations.push(Orientation::UprightDown);
-            orientations.push(Orientation::UprightRight);
+            orientations = [
+                Orientation::UprightUp,
+                Orientation::UprightLeft,
+                Orientation::UprightDown,
+                Orientation::UprightRight,
+            ];
+            orientation_count = 4;
         }
     }
 
-    for orientation in orientations {
+    for i in 0..orientation_count {
+        let orientation = orientations[i];
         let points = helpers::get_points_for_orientation(point, &orientation);
         if all_points_clear(board, points) {
             // println!("!!!!!!Found working piece position at {:?} with orientation {:?}", point, orientation);
