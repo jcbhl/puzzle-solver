@@ -110,11 +110,7 @@ fn solve(board: &mut Board) {
 
         if should_pop {
             stack.pop();
-            // increment_cursor_in_slice(&mut stack.last_mut().unwrap().cursor);
         }
-
-        // let mut buf = String::new();
-        // let _ = io::stdin().read_line(&mut buf);
     }
 }
 
@@ -127,37 +123,15 @@ fn placement_state_transition(state: PlacementState) -> PlacementState {
     }
 }
 
-// fn solve_level(mut board: &mut Board) {
-//     while board.cursor != END_OF_BOARD && board.state != PlacementState::Done {
-//         if let Some(p) = try_orientations(&board, &board.cursor, &board.state) {
-//             if helpers::need_check_overhang(&p.orientation) && helpers::has_empty_overhang(&board, &p.center, &p.orientation) {
-//                 println!("Bailing out, piece location has overhang.")
-//             } else {
-//                 println!("Placing piece at point {:?} with orientation {:?}", p.center, p.orientation);
-//                 place_piece_at(&mut board, &p.center, &p.orientation)
-//             }
-//         };
-
-//         if board.cursor.x == BOARD_SIZE - 1 && board.cursor.y == BOARD_SIZE - 1 && board.state != PlacementState::Done {
-//             println!("State transition from {:?}", board.state);
-//             board.cursor.x = 0;
-//             board.cursor.y = 0;
-//         } else if board.state == PlacementState::Done {
-//             // We've already upped the Z level from the state transition.
-//             board.cursor.x = 0;
-//             board.cursor.y = 0;
-//             board.state = PlacementState::PlacingFlat
-//         } else {
-//             increment_cursor_in_slice(&mut board.cursor);
-//         }
-//     }
-
-//     println!("Searched through all of board level {}, did not find any space.", board.cursor.z);
-//     // println!("{:?}", board.occupied);
-// }
-
 fn all_points_clear(board: &Board, points: [Point; 4]) -> bool {
-    return points.iter().all(|&point| inbounds_and_clear(board, &point));
+    // This originally was written as an iter-all expression, but rustc couldn't unroll the iter
+    // even though the array length is known at compile time so this is much faster.
+    for point in points {
+        if !inbounds_and_clear(board, &point) {
+            return false;
+        }
+    }
+    return true;
 }
 
 fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Option<Position> {
