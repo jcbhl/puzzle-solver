@@ -18,29 +18,73 @@ mod defs;
 use crate::defs::*;
 mod helpers;
 use crate::helpers::*;
-#[allow(dead_code)]
+
+use core::time;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
+use std::thread::sleep;
+
+pub const THREAD_COUNT: usize = 8;
 
 fn main() {
-    let mut board = Board::new();
-    solve(&mut board);
+    let result_vec: Arc<Mutex<Vec<Vec<Position>>>> = Default::default();
+
+    for thread_num in 0..THREAD_COUNT {
+        let initial_stack_state = StackState {
+            placement_state: PlacementState::PlacingFlat,
+            last_move: Position {
+                center: Point::default(),
+                orientation: Orientation::FlatUp,
+            },
+            cursor: get_cursor_from_thread_num(thread_num),
+            pieces_remaining: PIECE_COUNT,
+        };
+        let r = result_vec.clone();
+
+        thread::spawn(move || {
+            println!("Spawned thread {:?}", thread::current().id());
+            solve(r, initial_stack_state);
+        });
+    }
+    loop {
+        {
+            let mut vec = result_vec.lock().unwrap();
+
+            if !vec.is_empty() {
+                println!("Found new solution:");
+                vec.pop()
+                    .unwrap()
+                    .iter()
+                    .for_each(|position| println!("Place {:?} in orientation {:?}", position.center, position.orientation));
+                println!("\n\n");
+            }
+        }
+
+        sleep(time::Duration::from_millis(100));
+    }
 }
 
-fn solve(board: &mut Board) {
+fn get_cursor_from_thread_num(thread_id: usize) -> Point {
+    let f = thread_id as f64 / THREAD_COUNT as f64;
+    let total_squares = BOARD_SIZE * BOARD_SIZE;
+    let target = f * total_squares as f64;
+    let target = target as usize;
+    let y = target / BOARD_SIZE;
+    let x = target % BOARD_SIZE;
+    Point { x, y, z: 0 }
+}
+
+fn solve(results: Arc<Mutex<Vec<Vec<Position>>>>, initial_stack_state: StackState) {
     // Keep track of the state with a stack so that we get DFS.
     // At each step, find the next move given the current PlacementState and the cursor position, then update the board and add the move to the stack.
     // If we don't have any actions, then pop the top of the stack, undo the move, and continue searching from that cursor position and state.
     let mut stack: Vec<StackState> = Vec::new();
 
+    let mut board = Board::new();
+
     // This should never get popped, only adding so that we have a cursor position on the stack.
-    stack.push(StackState {
-        placement_state: PlacementState::PlacingFlat,
-        last_move: Position {
-            center: Point::default(),
-            orientation: Orientation::FlatUp,
-        },
-        cursor: Point::default(),
-        pieces_remaining: PIECE_COUNT,
-    });
+    stack.push(initial_stack_state);
 
     loop {
         let mut stack_state = stack.last_mut().unwrap();
@@ -49,10 +93,8 @@ fn solve(board: &mut Board) {
         let mut should_pop = false;
 
         if stack_state.pieces_remaining == 0 {
-            println!("---------------------Zero pieces remaining on the stack, solution found. Unwinding...");
-            stack
-                .iter()
-                .for_each(|elem| println!("Place {:?} in orientation {:?}", elem.last_move.center, elem.last_move.orientation));
+            let this_result: Vec<Position> = stack.iter().map(|stackstate| stackstate.last_move).collect();
+            results.lock().unwrap().push(this_result);
             return;
         } else if stack_state.cursor.x > BOARD_SIZE - 1 || stack_state.cursor.y > BOARD_SIZE - 1 {
             // println!("Cursor is out of board range, checking...");
@@ -62,7 +104,7 @@ fn solve(board: &mut Board) {
                     for y in 0..BOARD_SIZE {
                         if !board.occupied[[x, y, stack_state.cursor.z - 1]] {
                             // println!("Found unfilled box at {:?}. Unwinding", [x, y, stack_state.cursor.z - 1]);
-                            remove_piece_at(board, &stack_state.last_move.center, &stack_state.last_move.orientation);
+                            remove_piece_at(&mut board, &stack_state.last_move.center, &stack_state.last_move.orientation);
                             should_pop = true;
                             break 'outer;
                         }
@@ -79,9 +121,9 @@ fn solve(board: &mut Board) {
             }
 
             stack_state.placement_state = next_placement_state
-        } else if let Some(found_position) = try_orientations(board, &stack_state.cursor, &stack_state.placement_state) {
+        } else if let Some(found_position) = try_orientations(&board, &stack_state.cursor, &stack_state.placement_state) {
             if helpers::need_check_overhang(&found_position.orientation)
-                && helpers::has_empty_overhang(board, &found_position.center, &found_position.orientation)
+                && helpers::has_empty_overhang(&board, &found_position.center, &found_position.orientation)
             {
                 increment_cursor_in_slice(&mut stack_state.cursor);
                 // println!("Bailing out, position has overhang.");
@@ -90,7 +132,7 @@ fn solve(board: &mut Board) {
                 //     "Placing piece at point {:?} with orientation {:?}",
                 //     found_position.center, found_position.orientation
                 // );
-                place_piece_at(board, &found_position.center, &found_position.orientation);
+                place_piece_at(&mut board, &found_position.center, &found_position.orientation);
                 increment_cursor_in_slice(&mut stack_state.cursor);
                 let new_stack_state = StackState {
                     placement_state: stack_state.placement_state,
