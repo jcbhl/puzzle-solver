@@ -90,7 +90,7 @@ pub fn inbounds_and_clear(board: &Board, point: &Point) -> bool {
     // The Point components are usizes, so they are constrained to positive numbers.
     // Since we do a bounds check up front, there is no need for ndarray to perform its own bounds checking again.
     // This was shown to be a hot spot in profiling.
-    point.x < BOARD_SIZE && point.y < BOARD_SIZE && point.z < BOARD_SIZE && unsafe { !board.occupied.uget([point.x, point.y, point.z]) }
+    point.x < BOARD_SIZE && point.y < BOARD_SIZE && point.z < BOARD_SIZE && unsafe { !board.uget([point.x, point.y, point.z]) }
 }
 
 pub fn get_points_for_orientation(point: &Point, orientation: &Orientation) -> [Point; 4] {

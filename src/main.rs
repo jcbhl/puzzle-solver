@@ -22,7 +22,6 @@ use crate::helpers::*;
 use core::time;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::thread::sleep;
 
 fn main() {
     let search_results: Arc<Mutex<Vec<Solution>>> = Default::default();
@@ -59,7 +58,7 @@ fn main() {
             }
         }
 
-        sleep(time::Duration::from_millis(100));
+        thread::sleep(time::Duration::from_millis(100));
     }
 }
 
@@ -79,7 +78,7 @@ fn solve(results: Arc<Mutex<Vec<Solution>>>, initial_stack_state: StackState) {
     // If we don't have any possible actions, then pop the top of the stack, undo the move, and continue searching from that cursor position and state.
     let mut stack: Vec<StackState> = Vec::new();
 
-    let mut board = Board::new();
+    let mut board = ndarray::Array3::default((BOARD_SIZE, BOARD_SIZE, BOARD_SIZE));
 
     // This should never get popped, only adding so that we have a cursor position on the stack.
     stack.push(initial_stack_state);
@@ -107,7 +106,7 @@ fn solve(results: Arc<Mutex<Vec<Solution>>>, initial_stack_state: StackState) {
             if stack_state.placement_state == PlacementState::PlacingUpright {
                 'outer: for x in 0..BOARD_SIZE {
                     for y in 0..BOARD_SIZE {
-                        if !board.occupied[[x, y, stack_state.cursor.z - 1]] {
+                        if !board[[x, y, stack_state.cursor.z - 1]] {
                             remove_piece_at(&mut board, &stack_state.last_move.center, &stack_state.last_move.orientation);
                             should_pop = true;
                             break 'outer;
@@ -179,7 +178,6 @@ fn all_points_clear(board: &Board, points: [Point; 4]) -> bool {
 }
 
 fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Option<Position> {
-    // println!("Checking orientations for center point {:?} and state {:?}", point, state);
     if !inbounds_and_clear(board, point) {
         return None;
     }
@@ -190,7 +188,13 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
             Some(Orientation::FlatDown),
             Some(Orientation::FlatRight),
         ],
-        PlacementState::PlacingFaceup => [Some(Orientation::FaceupHorizontal), Some(Orientation::FaceupVertical), None, None],
+        #[rustfmt::skip]
+        PlacementState::PlacingFaceup => [
+            Some(Orientation::FaceupHorizontal), 
+            Some(Orientation::FaceupVertical), 
+            None, 
+            None
+        ],
         PlacementState::PlacingFacedown => [
             Some(Orientation::FacedownHorizontal),
             Some(Orientation::FacedownVertical),
@@ -211,7 +215,6 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
         }
         let points = helpers::get_points_for_orientation(point, &orientation.unwrap());
         if all_points_clear(board, points) {
-            // println!("!!!!!!Found working piece position at {:?} with orientation {:?}", point, orientation);
             return Some(Position {
                 center: *point,
                 orientation: orientation.unwrap(),
@@ -225,20 +228,17 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
 fn place_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
     let points = get_points_for_orientation(point, orientation);
     for target_point in points {
-        assert!(!board.occupied[[target_point.x, target_point.y, target_point.z]]);
-        board.occupied[[target_point.x, target_point.y, target_point.z]] = true;
+        assert!(!board[[target_point.x, target_point.y, target_point.z]]);
+        board[[target_point.x, target_point.y, target_point.z]] = true;
     }
-    // println!("Successfully placed piece at {:?} with orientation {:?}", point, orientation);
 }
 
 fn remove_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) {
     let points = get_points_for_orientation(point, orientation);
     for target_point in points {
-        assert!(board.occupied[[target_point.x, target_point.y, target_point.z]]);
-        board.occupied[[target_point.x, target_point.y, target_point.z]] = false;
+        assert!(board[[target_point.x, target_point.y, target_point.z]]);
+        board[[target_point.x, target_point.y, target_point.z]] = false;
     }
-    // println!("Successfully removed piece at {:?} with orientation {:?}", point, orientation);
-    // println!("New board state is:\n{:?}", board.occupied);
 }
 
 fn increment_cursor(cursor: &mut Point) {

@@ -1,10 +1,9 @@
-use ndarray::Array3;
-
 pub const BOARD_SIZE: usize = 6;
 pub const PIECE_COUNT: usize = 54;
 pub const THREAD_COUNT: usize = 8;
 
 pub type Solution = Vec<Position>;
+pub type Board = ndarray::Array3<bool>;
 
 #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Point {
@@ -24,7 +23,7 @@ pub enum Orientation {
     FlatUp,             // ┴
     FlatLeft,           // -|
     FlatDown,           // T
-    FlatRight,          // -|
+    FlatRight,          // |-
     FacedownHorizontal, // ---
     FacedownVertical,   // |
     FaceupHorizontal,   // ---
@@ -42,21 +41,6 @@ pub enum PlacementState {
     PlacingFaceup,
     PlacingFacedown,
     PlacingUpright,
-}
-pub struct Board {
-    pub occupied: Array3<bool>,
-    pub cursor: Point,
-    pub state: PlacementState,
-}
-
-impl Board {
-    pub fn new() -> Self {
-        Self {
-            occupied: Array3::default((BOARD_SIZE, BOARD_SIZE, BOARD_SIZE)),
-            cursor: Point { x: 0, y: 0, z: 0 },
-            state: PlacementState::PlacingFlat,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
