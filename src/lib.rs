@@ -23,6 +23,16 @@ use core::time;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern {
+    fn alert(s: &str);
+}
+
+
+#[allow(dead_code)]
 fn main() {
     let search_results: Arc<Mutex<Vec<Solution>>> = Default::default();
 
