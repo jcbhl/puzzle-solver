@@ -3,6 +3,7 @@ import("../pkg/index.js")
   .finally(() => console.log("Successfully imported wasm package"));
 import * as THREE from "three";
 import { TrackballControls } from "three/examples/jsm/controls/TrackballControls.js";
+import { Orientation, Point, wasm_get_points_for_orientation } from "../pkg/index.js";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -23,7 +24,10 @@ function fill_grid_square(x, y, z){
 }
 
 function test_get_points_for_orientation(){
-
+  const p = new Point(1, 1, 0);
+  const o = Orientation.FlatDown
+  const result = wasm_get_points_for_orientation(p, o);
+  console.log(result);
 }
 
 function setupGeometry() {
@@ -70,6 +74,7 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+test_get_points_for_orientation();
 setupControls();
 setupGeometry();
 animate();

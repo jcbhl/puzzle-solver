@@ -16,6 +16,14 @@ pub struct Point {
     pub z: usize,
 }
 
+#[wasm_bindgen]
+impl Point {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: usize, y: usize, z: usize) -> Self {
+        Point { x, y, z }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct Position {
     pub center: Point,
