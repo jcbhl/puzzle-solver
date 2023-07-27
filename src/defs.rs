@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
+
 pub const BOARD_SIZE: usize = 6;
 pub const PIECE_COUNT: usize = 54;
 pub const THREAD_COUNT: usize = 8;
@@ -5,19 +8,23 @@ pub const THREAD_COUNT: usize = 8;
 pub type Solution = Vec<Position>;
 pub type Board = ndarray::Array3<bool>;
 
-#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
+#[wasm_bindgen]
 pub struct Point {
     pub x: usize,
     pub y: usize,
     pub z: usize,
 }
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct Position {
     pub center: Point,
     pub orientation: Orientation,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[wasm_bindgen]
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Orientation {
     // viewed from the top
     FlatUp,             // ┴

@@ -22,6 +22,10 @@ function fill_grid_square(x, y, z){
 
 }
 
+function test_get_points_for_orientation(){
+
+}
+
 function setupGeometry() {
   const xy_plane = new THREE.GridHelper(7, 6);
   xy_plane.rotateX(THREE.MathUtils.DEG2RAD * 90);
@@ -38,8 +42,6 @@ function setupGeometry() {
   yz_plane.position.add(new THREE.Vector3(0,3.5,3.5));
   scene.add(yz_plane);
   
-
-
 
   const geometry = new THREE.SphereGeometry(0.5);
   const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });

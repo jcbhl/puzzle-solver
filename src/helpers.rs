@@ -1,3 +1,6 @@
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use web_sys::console;
+
 use crate::defs::*;
 
 // Checks to see if a given point and orientation overhangs an empty point. If so, we don't want to place a piece there.
@@ -91,6 +94,14 @@ pub fn inbounds_and_clear(board: &Board, point: &Point) -> bool {
     // Since we do a bounds check up front, there is no need for ndarray to perform its own bounds checking again.
     // This was shown to be a hot spot in profiling.
     point.x < BOARD_SIZE && point.y < BOARD_SIZE && point.z < BOARD_SIZE && unsafe { !board.uget([point.x, point.y, point.z]) }
+}
+
+#[wasm_bindgen]
+pub fn wasm_get_points_for_orientation(point: Point, orientation: Orientation) -> JsValue {
+    console::log_1(&JsValue::from_str("this is from the wasm call"));
+    let result_points = get_points_for_orientation(&point, &orientation);
+
+    serde_wasm_bindgen::to_value(&result_points).unwrap()
 }
 
 pub fn get_points_for_orientation(point: &Point, orientation: &Orientation) -> [Point; 4] {
