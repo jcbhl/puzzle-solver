@@ -19,38 +19,67 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new TrackballControls(camera, renderer.domElement);
 
-function fill_grid_square(x, y, z){
+function draw_piece(piece_points){
+  const color = new THREE.Color(Math.random(), Math.random(), Math.random());
+  for (const point of piece_points){
+    fill_grid_square(point, color)
+  }
+}
 
+// Expects the point to be already converted from Rust space to JS space
+function fill_grid_square(point, color){
+  const geometry = new THREE.BoxGeometry(1,1,1);
+  const material = new THREE.MeshBasicMaterial({color: color});
+  const cube = new THREE.Mesh(geometry, material);
+  cube.position.add(point);
+
+  console.log(point.x, point.y, point.z)
+
+  let shift = new THREE.Vector3(0.5, 0.5, 0.5);
+  cube.position.add(shift);
+
+  scene.add(cube);
+
+  const edge_geometry = new THREE.EdgesGeometry(geometry);
+  const line = new THREE.Line(edge_geometry, new THREE.LineBasicMaterial({color: 0x000000}));
+  line.position.add(shift);
+  line.position.add(point);
+  scene.add(line);
+}
+
+function switch_coords(point) {
+  const temp = point.y;
+  point.y = point.z;
+  point.z = temp;
 }
 
 function test_get_points_for_orientation(){
-  const p = new Point(1, 1, 0);
-  const o = Orientation.FlatDown
+  const p = new Point(2, 2, 1);
+  const o = Orientation.UprightUp
   const result = wasm_get_points_for_orientation(p, o);
-  console.log(result);
+  for (const point of result){
+    switch_coords(point);
+  }
+
+  draw_piece(result)
 }
 
 function setupGeometry() {
-  const xy_plane = new THREE.GridHelper(7, 6);
+  const xy_plane = new THREE.GridHelper(6, 6);
   xy_plane.rotateX(THREE.MathUtils.DEG2RAD * 90);
-  xy_plane.position.add(new THREE.Vector3(3.5,3.5,0));
+  xy_plane.position.add(new THREE.Vector3(3,3,0));
   scene.add(xy_plane);
 
-  const xz_plane = new THREE.GridHelper(7, 6);
+  const xz_plane = new THREE.GridHelper(6, 6);
   xz_plane.rotateY(THREE.MathUtils.DEG2RAD * 90);
-  xz_plane.position.add(new THREE.Vector3(3.5,0,3.5));
+  xz_plane.position.add(new THREE.Vector3(3,0,3));
   scene.add(xz_plane);
 
-  const yz_plane = new THREE.GridHelper(7, 6);
+  const yz_plane = new THREE.GridHelper(6, 6);
   yz_plane.rotateZ(THREE.MathUtils.DEG2RAD * 90);
-  yz_plane.position.add(new THREE.Vector3(0,3.5,3.5));
+  yz_plane.position.add(new THREE.Vector3(0,3,3));
   scene.add(yz_plane);
   
-
-  const geometry = new THREE.SphereGeometry(0.5);
-  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-  const sphere = new THREE.Mesh(geometry, material);
-  scene.add(sphere);
 
   // "The X axis is red. The Y axis is green. The Z axis is blue."
   const axesHelper = new THREE.AxesHelper(5);
