@@ -86,24 +86,28 @@ fn solve(results: Arc<Mutex<Vec<Solution>>>, initial_stack_state: StackState) {
 
     loop {
         let mut stack_state = stack.last_mut().unwrap();
+        let stack_ref = *stack_state;
         let mut should_pop = false;
 
         // We've found a valid solution, pop it off the stack and return the result to the main thread.
         if stack_state.pieces_remaining == 0 {
-            let this_result: Vec<Position> = stack.iter().map(|stackstate| stackstate.last_move).collect();
+            // The first element is going to be the initial cursor position, so ignore it when reporting.
+            let this_result: Vec<Position> = stack.iter().skip(1).map(|stackstate| stackstate.last_move).collect();
             {
                 results.lock().unwrap().push(this_result);
             }
-            // TODO continue searching
-            return;
+
+            // After reporting the result, continue searching.
+            remove_piece_at(&mut board, &stack_ref.last_move.center, &stack_ref.last_move.orientation);
+            should_pop = true;
         } else if stack_state.cursor.x > BOARD_SIZE - 1 || stack_state.cursor.y > BOARD_SIZE - 1 {
-            // println!("Cursor is out of board range, checking...");
-            // Bail out if we're PlacingUpright and the slice is not full.
+            // Recall that our state transition graph for placement is PlacingFlat => PlacingFaceup
+            // => PlacingFacedown => PlacingUpright. Therefore, if we're in PlacingUpright and the board is not yet full,
+            // then there's not a valid solution and we should backtrack to the last move.
             if stack_state.placement_state == PlacementState::PlacingUpright {
                 'outer: for x in 0..BOARD_SIZE {
                     for y in 0..BOARD_SIZE {
                         if !board.occupied[[x, y, stack_state.cursor.z - 1]] {
-                            // println!("Found unfilled box at {:?}. Unwinding", [x, y, stack_state.cursor.z - 1]);
                             remove_piece_at(&mut board, &stack_state.last_move.center, &stack_state.last_move.orientation);
                             should_pop = true;
                             break 'outer;
@@ -112,7 +116,6 @@ fn solve(results: Arc<Mutex<Vec<Solution>>>, initial_stack_state: StackState) {
                 }
             }
             let next_placement_state = placement_state_transition(stack_state.placement_state);
-            // println!("State change from {:?} to {:?}", stack_state.placement_state, next_placement_state);
 
             stack_state.cursor.x = 0;
             stack_state.cursor.y = 0;
@@ -122,18 +125,17 @@ fn solve(results: Arc<Mutex<Vec<Solution>>>, initial_stack_state: StackState) {
 
             stack_state.placement_state = next_placement_state
         } else if let Some(found_position) = try_orientations(&board, &stack_state.cursor, &stack_state.placement_state) {
+            // Given our current placement state, if there are any valid orientations, check its validity and place it.
+
+            // We don't want to place a piece that will cover any piece on the layer below it.
             if helpers::need_check_overhang(&found_position.orientation)
                 && helpers::has_empty_overhang(&board, &found_position.center, &found_position.orientation)
             {
-                increment_cursor_in_slice(&mut stack_state.cursor);
-                // println!("Bailing out, position has overhang.");
+                increment_cursor(&mut stack_state.cursor);
             } else {
-                // println!(
-                //     "Placing piece at point {:?} with orientation {:?}",
-                //     found_position.center, found_position.orientation
-                // );
+                // Place the piece and add the move to the stack.
                 place_piece_at(&mut board, &found_position.center, &found_position.orientation);
-                increment_cursor_in_slice(&mut stack_state.cursor);
+                increment_cursor(&mut stack_state.cursor);
                 let new_stack_state = StackState {
                     placement_state: stack_state.placement_state,
                     last_move: Position {
@@ -146,12 +148,12 @@ fn solve(results: Arc<Mutex<Vec<Solution>>>, initial_stack_state: StackState) {
                 stack.push(new_stack_state);
             }
         } else {
-            // println!("No moves found, incrementing.");
-            increment_cursor_in_slice(&mut stack_state.cursor);
+            // No valid moves for this position and orientation, continue on.
+            increment_cursor(&mut stack_state.cursor);
         }
 
         if should_pop {
-            stack.pop();
+            assert!(stack.pop().is_some());
         }
     }
 }
@@ -239,7 +241,7 @@ fn remove_piece_at(board: &mut Board, point: &Point, orientation: &Orientation) 
     // println!("New board state is:\n{:?}", board.occupied);
 }
 
-fn increment_cursor_in_slice(cursor: &mut Point) {
+fn increment_cursor(cursor: &mut Point) {
     cursor.x += 1;
     if cursor.x == BOARD_SIZE {
         cursor.x = 0;
