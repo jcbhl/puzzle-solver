@@ -25,15 +25,16 @@ use std::thread;
 
 
 use wasm_bindgen::prelude::*;
+use web_sys::console;
 
-#[wasm_bindgen]
-extern {
-    fn alert(s: &str);
-}
+#[wasm_bindgen(start)]
+pub fn main_js() -> Result<(), JsValue>{
+    #[cfg(debug_assertions)]
+    console_error_panic_hook::set_once();
 
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello world");
+    console::log_1(&JsValue::from_str("123123123123"));
+
+    Ok(())
 }
 
 
