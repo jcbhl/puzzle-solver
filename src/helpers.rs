@@ -1,5 +1,10 @@
 use crate::defs::*;
 
+pub fn set_panic_hook() {
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
+}
+
 // Checks to see if a given point and orientation overhangs an empty point. If so, we don't want to place a piece there.
 pub fn has_empty_overhang(board: &Board, point: &Point, orientation: &Orientation) -> bool {
     match orientation {

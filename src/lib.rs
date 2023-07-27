@@ -31,6 +31,11 @@ extern {
     fn alert(s: &str);
 }
 
+#[wasm_bindgen]
+pub fn greet() {
+    alert("Hello world");
+}
+
 
 #[allow(dead_code)]
 fn main() {
