@@ -14,21 +14,18 @@ y
 */
 
 mod defs;
-
 use crate::defs::*;
+
 mod helpers;
 use crate::helpers::*;
 
 use core::time;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::sleep;
 
-pub const THREAD_COUNT: usize = 8;
-
 fn main() {
-    let result_vec: Arc<Mutex<Vec<Vec<Position>>>> = Default::default();
+    let search_results: Arc<Mutex<Vec<Solution>>> = Default::default();
 
     for thread_num in 0..THREAD_COUNT {
         let initial_stack_state = StackState {
@@ -40,16 +37,17 @@ fn main() {
             cursor: get_cursor_from_thread_num(thread_num),
             pieces_remaining: PIECE_COUNT,
         };
-        let r = result_vec.clone();
+        let search_results = search_results.clone();
 
         thread::spawn(move || {
             println!("Spawned thread {:?}", thread::current().id());
-            solve(r, initial_stack_state);
+            solve(search_results, initial_stack_state);
         });
     }
+
     loop {
         {
-            let mut vec = result_vec.lock().unwrap();
+            let mut vec = search_results.lock().unwrap();
 
             if !vec.is_empty() {
                 println!("Found new solution:");
@@ -65,20 +63,20 @@ fn main() {
     }
 }
 
+// Gives each thread a point on the first layer to start the search at.
 fn get_cursor_from_thread_num(thread_id: usize) -> Point {
-    let f = thread_id as f64 / THREAD_COUNT as f64;
+    let starting_point_fraction = thread_id as f64 / THREAD_COUNT as f64;
     let total_squares = BOARD_SIZE * BOARD_SIZE;
-    let target = f * total_squares as f64;
-    let target = target as usize;
-    let y = target / BOARD_SIZE;
-    let x = target % BOARD_SIZE;
+    let starting_square_idx = (starting_point_fraction * total_squares as f64) as usize;
+    let y = starting_square_idx / BOARD_SIZE;
+    let x = starting_square_idx % BOARD_SIZE;
     Point { x, y, z: 0 }
 }
 
-fn solve(results: Arc<Mutex<Vec<Vec<Position>>>>, initial_stack_state: StackState) {
-    // Keep track of the state with a stack so that we get DFS.
+fn solve(results: Arc<Mutex<Vec<Solution>>>, initial_stack_state: StackState) {
+    // Core solver loop - DFS with pruning.
     // At each step, find the next move given the current PlacementState and the cursor position, then update the board and add the move to the stack.
-    // If we don't have any actions, then pop the top of the stack, undo the move, and continue searching from that cursor position and state.
+    // If we don't have any possible actions, then pop the top of the stack, undo the move, and continue searching from that cursor position and state.
     let mut stack: Vec<StackState> = Vec::new();
 
     let mut board = Board::new();
@@ -88,13 +86,15 @@ fn solve(results: Arc<Mutex<Vec<Vec<Position>>>>, initial_stack_state: StackStat
 
     loop {
         let mut stack_state = stack.last_mut().unwrap();
-        // println!("Current stack state is:\n {:?}", stack_state);
-
         let mut should_pop = false;
 
+        // We've found a valid solution, pop it off the stack and return the result to the main thread.
         if stack_state.pieces_remaining == 0 {
             let this_result: Vec<Position> = stack.iter().map(|stackstate| stackstate.last_move).collect();
-            results.lock().unwrap().push(this_result);
+            {
+                results.lock().unwrap().push(this_result);
+            }
+            // TODO continue searching
             return;
         } else if stack_state.cursor.x > BOARD_SIZE - 1 || stack_state.cursor.y > BOARD_SIZE - 1 {
             // println!("Cursor is out of board range, checking...");
@@ -173,7 +173,7 @@ fn all_points_clear(board: &Board, points: [Point; 4]) -> bool {
             return false;
         }
     }
-    return true;
+    true
 }
 
 fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Option<Position> {
@@ -181,36 +181,27 @@ fn try_orientations(board: &Board, point: &Point, state: &PlacementState) -> Opt
     if !inbounds_and_clear(board, point) {
         return None;
     }
-    let orientations: [Option<Orientation>; 4];
-    match state {
-        PlacementState::PlacingFlat => {
-            orientations = [
-                Some(Orientation::FlatUp),
-                Some(Orientation::FlatLeft),
-                Some(Orientation::FlatDown),
-                Some(Orientation::FlatRight),
-            ];
-        }
-        PlacementState::PlacingFaceup => {
-            orientations = [Some(Orientation::FaceupHorizontal), Some(Orientation::FaceupVertical), None, None];
-        }
-        PlacementState::PlacingFacedown => {
-            orientations = [
-                Some(Orientation::FacedownHorizontal),
-                Some(Orientation::FacedownVertical),
-                None,
-                None,
-            ];
-        }
-        PlacementState::PlacingUpright => {
-            orientations = [
-                Some(Orientation::UprightUp),
-                Some(Orientation::UprightLeft),
-                Some(Orientation::UprightDown),
-                Some(Orientation::UprightRight),
-            ];
-        }
-    }
+    let orientations: [Option<Orientation>; 4] = match state {
+        PlacementState::PlacingFlat => [
+            Some(Orientation::FlatUp),
+            Some(Orientation::FlatLeft),
+            Some(Orientation::FlatDown),
+            Some(Orientation::FlatRight),
+        ],
+        PlacementState::PlacingFaceup => [Some(Orientation::FaceupHorizontal), Some(Orientation::FaceupVertical), None, None],
+        PlacementState::PlacingFacedown => [
+            Some(Orientation::FacedownHorizontal),
+            Some(Orientation::FacedownVertical),
+            None,
+            None,
+        ],
+        PlacementState::PlacingUpright => [
+            Some(Orientation::UprightUp),
+            Some(Orientation::UprightLeft),
+            Some(Orientation::UprightDown),
+            Some(Orientation::UprightRight),
+        ],
+    };
 
     for orientation in orientations {
         if orientation.is_none() {

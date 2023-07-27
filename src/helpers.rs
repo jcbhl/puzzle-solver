@@ -94,7 +94,7 @@ pub fn inbounds_and_clear(board: &Board, point: &Point) -> bool {
 }
 
 pub fn get_points_for_orientation(point: &Point, orientation: &Orientation) -> [Point; 4] {
-    let mut points: [Point; 4] = [point.clone(); 4];
+    let mut points: [Point; 4] = [*point; 4];
 
     // These orientations are all expressed as offsets from the center point of the piece.
     match orientation {

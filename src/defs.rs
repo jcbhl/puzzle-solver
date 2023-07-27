@@ -2,6 +2,9 @@ use ndarray::Array3;
 
 pub const BOARD_SIZE: usize = 6;
 pub const PIECE_COUNT: usize = 54;
+pub const THREAD_COUNT: usize = 8;
+
+pub type Solution = Vec<Position>;
 
 #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Point {
