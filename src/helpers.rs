@@ -1,5 +1,5 @@
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
-use web_sys::console;
+// use web_sys::console;
 
 use crate::defs::*;
 
@@ -98,7 +98,7 @@ pub fn inbounds_and_clear(board: &Board, point: &Point) -> bool {
 
 #[wasm_bindgen]
 pub fn wasm_get_points_for_orientation(point: Point, orientation: Orientation) -> JsValue {
-    console::log_1(&JsValue::from_str("this is from the wasm call"));
+    // console::log_1(&JsValue::from_str("this is from the wasm call"));
     let result_points = get_points_for_orientation(&point, &orientation);
 
     serde_wasm_bindgen::to_value(&result_points).unwrap()
