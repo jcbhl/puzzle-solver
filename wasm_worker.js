@@ -1,18 +1,9 @@
 import { threads } from 'wasm-feature-detect';
 import * as Comlink from 'comlink';
 
-// Wrap wasm-bindgen exports (the `generate` function) to add time measurement.
-function wrapExports({ generate }) {
-  return ({ width, height, maxIterations }) => {
-    const start = performance.now();
-    const rawImageData = generate(width, height, maxIterations);
-    const time = performance.now() - start;
-    return {
-      // Little perf boost to transfer data to the main thread w/o copying.
-      rawImageData: Comlink.transfer(rawImageData, [rawImageData.buffer]),
-      time
-    };
-  };
+function callFFI(ffiImpl) {
+  const ffiResult = ffiImpl();
+  return Comlink.transfer(ffiResult);
 }
 
 async function initHandlers() {
@@ -20,7 +11,8 @@ async function initHandlers() {
     (async () => {
       const singleThread = await import('./pkg/puzzle_solver.js');
       await singleThread.default();
-      return wrapExports(singleThread);
+      const ffiResult = singleThread();
+      return Comlink.transfer(ffiResult);
     })(),
     (async () => {
       // If threads are unsupported in this browser, skip this handler.
@@ -30,7 +22,8 @@ async function initHandlers() {
       );
       await multiThread.default();
       await multiThread.initThreadPool(navigator.hardwareConcurrency);
-      return wrapExports(multiThread);
+      const ffiResult = multiThread();
+      return Comlink.transfer(ffiResult);
     })()
   ]);
 
